@@ -17,9 +17,12 @@ Run locally:
 import time
 import logging
 
+import os
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
+import json
+from datetime import datetime
 
 from solver.board import NonogramBoard
 
@@ -28,8 +31,10 @@ from solver.board import NonogramBoard
 app = Flask(__name__)
 CORS(app)   # allow all origins; tighten in production as needed
 
-# Cấu hình Database
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///puzzles.db'
+basedir = os.path.abspath(os.path.dirname(__file__))
+
+# Cấu hình đường dẫn file database (sqlite sẽ tạo 1 file .db trong thư mục của bạn)
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'puzzles.db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 

@@ -295,10 +295,10 @@ class NonogramBoard:
         self.apply_logic()
 
         # ── Step 2: base cases ────────────────────────────────────────────────
-        if self.is_solved():
-            return True
         if self.is_invalid():
             return False
+        if self.is_solved():
+            return True
 
         # ── Step 3: pick the most-constrained line (MRV) ─────────────────────
         mrv = self.get_mrv_line()
@@ -382,7 +382,20 @@ class NonogramBoard:
 
         # Fast-path: line is already fully determined
         if -1 not in current:
-            return None
+            blocks = []
+            count = 0
+            for val in current:
+                if val == 1:
+                    count += 1
+                elif val == 0 and count > 0:
+                    blocks.append(count)
+                    count = 0
+            if count > 0:
+                blocks.append(count)
+            if blocks == clues:
+                return None
+            else:
+                return []
 
         all_combos = generate_combinations(clues, length)
 
@@ -429,7 +442,7 @@ if __name__ == "__main__":
     #   # . # . #
     #   # # # # #
     rows_clues = [[5], [1, 1, 1], [1, 1, 1], [1, 1, 1], [5]]
-    cols_clues = [[5], [1, 1, 1], [1, 1, 1], [1, 1, 1], [5]]
+    cols_clues = [[5], [1, 1], [5], [1, 1], [5]]
 
     board = NonogramBoard(rows_clues, cols_clues)
 

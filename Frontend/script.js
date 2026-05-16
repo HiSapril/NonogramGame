@@ -54,6 +54,8 @@ let currentRowsClues  = PUZZLE_LIBRARY.easy.rows;
 let currentColsClues  = PUZZLE_LIBRARY.easy.cols;
 let animationRunning  = false;   // guard against double-start
 let animationAborted  = false;   // set to true on pause/reset
+let currentSteps      = [];
+let currentStepIndex  = 0;
 
 // ── DOM refs ──────────────────────────────────────────────────────────────────
 const container       = document.getElementById("nonogram-container");
@@ -80,6 +82,8 @@ const btnReset        = document.getElementById("btn-reset");
 const btnSolve        = document.getElementById("btn-solve");
 const btnPlay         = document.getElementById("btn-play");
 const btnPause        = document.getElementById("btn-pause");
+const btnPrev         = document.getElementById("btn-prev");
+const btnNext         = document.getElementById("btn-next");
 const btnSave         = document.getElementById("btn-save");
 const btnDelete       = document.getElementById("btn-delete");
 const speedControl    = document.getElementById("speed-control");
@@ -341,6 +345,8 @@ async function fetchAndSolve() {
   btnSolve.disabled   = true;
   btnPlay.hidden      = true;
   btnPause.hidden     = true;
+  btnPrev.hidden      = true;
+  btnNext.hidden      = true;
   speedControl.hidden = true;
   setStatus("solving", "◌", "Sending puzzle to AI solver…");
 
@@ -392,11 +398,19 @@ async function fetchAndSolve() {
     speedControl.hidden = false;
     btnPlay.hidden      = false;
     btnPause.hidden     = true;
+    btnPrev.hidden      = false;
+    btnNext.hidden      = false;
+
+    currentSteps = steps;
+    currentStepIndex = 0;
 
     // Store steps for the Play button
     btnPlay.onclick = async () => {
-      resetGrid();
-      await animateSteps(steps);
+      if (currentStepIndex === 0 || currentStepIndex >= currentSteps.length) {
+        resetGrid();
+        currentStepIndex = 0;
+      }
+      await animateSteps();
     };
 
   } catch (err) {
@@ -426,16 +440,20 @@ async function fetchAndSolve() {
  *
  * @param {{ x:number, y:number, val:number, type:string }[]} steps
  */
-async function animateSteps(steps) {
+async function animateSteps() {
   animationRunning = true;
   animationAborted = false;
 
   btnPlay.hidden  = true;
   btnPause.hidden = false;
+  btnPrev.hidden  = true;
+  btnNext.hidden  = true;
   btnSolve.disabled = true;
 
-  for (const step of steps) {
+  for (; currentStepIndex < currentSteps.length; currentStepIndex++) {
     if (animationAborted) break;
+
+    const step = currentSteps[currentStepIndex];
 
     // step.x = col index, step.y = row index  (from Flask history)
     let cell = getCell(step.y, step.x);
@@ -450,30 +468,31 @@ async function animateSteps(steps) {
       setCellState(cell, "guess", step.val);
 
     } else if (step.type === "BACKTRACK") {
-      // Flash red then return to empty  (handled entirely by @keyframes flash-red)
-      cell.classList.remove(...STATE_CLASSES);
-      cell.classList.add("cell-backtrack");
-      cell.textContent = "";
-      // After the 200 ms animation, revert to cell-empty
-      await sleep(200);
-      if (!animationAborted) {
-        cell.classList.remove("cell-backtrack");
-        cell.classList.add("cell-empty");
-      }
+      setCellState(cell, "backtrack", step.val);
     }
 
     // Wait before next step — read slider value every frame so speed changes take effect
     await sleep(currentDelay());
+
+    // Revert backtrack to normal state after the delay
+    if (step.type === "BACKTRACK" && !animationAborted) {
+      const restoredState = step.val === 1 ? "filled" : (step.val === 0 ? "crossed" : "empty");
+      setCellState(cell, restoredState, step.val);
+    }
   }
 
   // ── Finish ────────────────────────────────────────────────────────────────
   animationRunning = false;
   btnSolve.disabled = false;
-  btnPause.hidden   = true;
-  btnPlay.hidden    = false;
 
-  if (!animationAborted) {
-    setStatus("solved", "✓", "Animation complete!");
+  if (currentStepIndex >= currentSteps.length) {
+    btnPause.hidden   = true;
+    btnPlay.hidden    = false;
+    btnPrev.hidden    = false;
+    btnNext.hidden    = false;
+    if (!animationAborted) {
+      setStatus("solved", "✓", "Animation complete!");
+    }
   }
 }
 
@@ -623,6 +642,8 @@ function resetControls() {
   animationRunning  = false;
   btnPlay.hidden      = true;
   btnPause.hidden     = true;
+  btnPrev.hidden      = true;
+  btnNext.hidden      = true;
   speedControl.hidden = true;
   btnSolve.disabled   = false;
   setStatus("idle", "◈", "Select a puzzle and press ⚡ Solve, or fill cells manually.");
@@ -719,9 +740,51 @@ btnPause.addEventListener("click", () => {
   animationRunning = false;
   btnPause.hidden  = true;
   btnPlay.hidden   = false;
+  btnPrev.hidden   = false;
+  btnNext.hidden   = false;
   btnSolve.disabled = false;
-  setStatus("idle", "◈", "Animation paused. Press ▶ to replay from start.");
+  setStatus("idle", "◈", `Animation paused. Step ${currentStepIndex} / ${currentSteps.length}`);
 });
+
+btnPrev.addEventListener("click", () => {
+  if (animationRunning || currentStepIndex <= 0) return;
+  currentStepIndex--;
+  resetGrid();
+  for (let i = 0; i < currentStepIndex; i++) {
+    const isLast = (i === currentStepIndex - 1);
+    applyStepInstant(currentSteps[i], isLast);
+  }
+  setStatus("idle", "◈", `Step ${currentStepIndex} / ${currentSteps.length}`);
+});
+
+btnNext.addEventListener("click", () => {
+  if (animationRunning || currentStepIndex >= currentSteps.length) return;
+  currentStepIndex++;
+  resetGrid();
+  for (let i = 0; i < currentStepIndex; i++) {
+    const isLast = (i === currentStepIndex - 1);
+    applyStepInstant(currentSteps[i], isLast);
+  }
+  setStatus("idle", "◈", `Step ${currentStepIndex} / ${currentSteps.length}`);
+});
+
+function applyStepInstant(step, animateBacktrack = false) {
+  let cell = getCell(step.y, step.x);
+  if (!cell) return;
+  if (step.type === "logic") {
+    setCellState(cell, "logic", step.val);
+  } else if (step.type === "GUESS") {
+    setCellState(cell, "guess", step.val);
+  } else if (step.type === "BACKTRACK") {
+    if (animateBacktrack) {
+      setCellState(cell, "backtrack", step.val);
+    } else {
+      // For fast-forwarding previous steps, we don't show the red color, but we still apply the restored state
+      const restoredState = step.val === 1 ? "filled" : (step.val === 0 ? "crossed" : "empty");
+      setCellState(cell, restoredState, step.val);
+    }
+  }
+}
 
 // Speed slider — update label in real time (value IS the delay in ms)
 speedSlider.addEventListener("input", () => {

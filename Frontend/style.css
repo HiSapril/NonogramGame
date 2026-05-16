@@ -7,31 +7,31 @@
 
 :root {
   /* palette */
-  --clr-bg:          #0d0f1a;
-  --clr-surface:     #12152a;
-  --clr-surface2:    #1a1e35;
-  --clr-border:      rgba(120,130,200,0.18);
-  --clr-border-hi:   rgba(140,160,255,0.35);
+  --clr-bg:          #fafafa;
+  --clr-surface:     #f4f4f4; /* clue area background */
+  --clr-surface2:    #ffffff;
+  --clr-border:      #d4d4d4;
+  --clr-border-hi:   #a3a3a3;
 
-  --clr-accent:      #6c63ff;
-  --clr-accent2:     #a78bfa;
-  --clr-accent3:     #38bdf8;
-  --clr-success:     #34d399;
-  --clr-warn:        #fbbf24;
-  --clr-danger:      #f87171;
+  --clr-accent:      #3b82f6;
+  --clr-accent2:     #8b5cf6;
+  --clr-accent3:     #0ea5e9;
+  --clr-success:     #10b981;
+  --clr-warn:        #f59e0b;
+  --clr-danger:      #ef4444;
 
-  --clr-text:        #e2e8f0;
-  --clr-text-muted:  #64748b;
+  --clr-text:        #171717;
+  --clr-text-muted:  #404040;
 
   /* cell states */
-  --cell-empty:      #1e2340;
-  --cell-empty-border: rgba(120,130,200,0.22);
-  --cell-filled:     #6c63ff;
-  --cell-filled-glow:#a78bfa;
-  --cell-crossed-bg: #1a1e35;
-  --cell-logic:      #38bdf8;
-  --cell-guess:      #fbbf24;
-  --cell-backtrack:  #f87171;
+  --cell-empty:      #ffffff;
+  --cell-empty-border: #d4d4d4;
+  --cell-filled:     #000000;
+  --cell-filled-glow:#555555;
+  --cell-crossed-bg: #e5e5e5;
+  --cell-logic:      #bae6fd;
+  --cell-guess:      #fde68a;
+  --cell-backtrack:  #fecaca;
 
   /* layout */
   --cell-size:       36px;
@@ -316,8 +316,8 @@ select.control-input { cursor: pointer; }
 }
 .clue-number {
   font-family: 'JetBrains Mono', monospace;
-  font-size: 0.72rem;
-  font-weight: 600;
+  font-size: 0.85rem;
+  font-weight: 700;
   color: var(--clr-text-muted);
   line-height: 1.1;
   transition: color 0.2s;
@@ -378,9 +378,8 @@ select.control-input { cursor: pointer; }
 /* ── Cell states ─────────────────────────────────────────────── */
 .cell-filled {
   background: var(--cell-filled);
-  box-shadow: 0 0 8px rgba(108,99,255,0.45);
 }
-.cell-filled:hover { background: color-mix(in srgb, var(--cell-filled) 80%, white); }
+.cell-filled:hover { background: var(--cell-filled-glow); }
 
 .cell-crossed,
 .cell-empty-solved {
@@ -390,28 +389,23 @@ select.control-input { cursor: pointer; }
 
 /* ── Solver animation classes ────────────────────────────────── */
 .cell-logic {
-  background: #38bdf8;                    /* blue — AI deduction */
-  box-shadow: 0 0 10px rgba(56,189,248,0.55);
+  background: var(--cell-logic);
   animation: pulse-logic 0.35s ease-out;
-  color: #0284c7;                         /* distinct darker blue for X */
+  color: #0369a1;
   font-weight: 700;
 }
 .cell-guess {
-  background: #fbbf24;                    /* amber — AI guessing */
-  box-shadow: 0 0 10px rgba(251,191,36,0.55);
+  background: var(--cell-guess);
   animation: pulse-guess 0.35s ease-out;
-  color: #b45309;                         /* distinct darker amber for X */
+  color: #b45309;
   font-weight: 700;
 }
 .cell-backtrack {
-  animation: flash-red 0.2s ease-out forwards;
+  background: var(--cell-backtrack);
+  color: #b91c1c;
+  font-weight: 700;
 }
 
-@keyframes flash-red {
-  0%   { background: #ef4444; box-shadow: 0 0 14px rgba(239,68,68,0.8); }
-  60%  { background: #f87171; box-shadow: 0 0 6px  rgba(239,68,68,0.4); }
-  100% { background: var(--cell-empty); box-shadow: none; }
-}
 @keyframes pulse-logic { 0%{transform:scale(1.25);opacity:.7} 100%{transform:scale(1);opacity:1} }
 @keyframes pulse-guess { 0%{transform:scale(1.3); opacity:.6} 100%{transform:scale(1);opacity:1} }
 

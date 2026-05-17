@@ -77,7 +77,7 @@ class NonogramBoard:
 
     # ── Mutation ──────────────────────────────────────────────────────────────
 
-    def update_cell(self, r: int, c: int, val: int, type: str = "logic") -> bool:
+    def update_cell(self, r: int, c: int, val: int, type: str = "logic", reason: str = "") -> bool:
         """
         Update cell (r, c) to ``val`` and record the change in history.
 
@@ -93,6 +93,8 @@ class NonogramBoard:
         type : str
             Source of the change, e.g. ``"logic"`` (deduction) or
             ``"user"`` (manual input).  Stored verbatim in history.
+        reason : str
+            Explanation of why this change was deduced.
 
         Returns
         -------
@@ -103,7 +105,7 @@ class NonogramBoard:
             return False   # no change — skip
 
         self.grid[r][c] = val
-        self.history.append({"x": c, "y": r, "val": val, "type": type})
+        self.history.append({"x": c, "y": r, "val": val, "type": type, "reason": reason})
         return True
 
     # ── Status checks ─────────────────────────────────────────────────────────
@@ -178,7 +180,16 @@ class NonogramBoard:
 
                 for c, val in enumerate(overlap):
                     if val != -1:
-                        if self.update_cell(r, c, val, type="logic"):
+                        clues = self.rows_clues[r]
+                        combos_to_show = combos[:3]
+                        combos_str = str(combos_to_show)
+                        if len(combos) > 3:
+                            combos_str = combos_str[:-1] + ", ...]"
+                        
+                        cell_desc = "đen" if val == 1 else "trống"
+                        reason = f"Hàng {r+1} (Gợi ý {clues}) có {len(combos)} cấu hình khả dĩ: {combos_str} -> Giao thoa: ô cột {c+1} chắc chắn {cell_desc}."
+                        
+                        if self.update_cell(r, c, val, type="logic", reason=reason):
                             changed = True
 
             # ── Column pass ───────────────────────────────────────────────────
@@ -198,7 +209,16 @@ class NonogramBoard:
 
                 for r, val in enumerate(overlap):
                     if val != -1:
-                        if self.update_cell(r, c, val, type="logic"):
+                        clues = self.cols_clues[c]
+                        combos_to_show = combos[:3]
+                        combos_str = str(combos_to_show)
+                        if len(combos) > 3:
+                            combos_str = combos_str[:-1] + ", ...]"
+                        
+                        cell_desc = "đen" if val == 1 else "trống"
+                        reason = f"Cột {c+1} (Gợi ý {clues}) có {len(combos)} cấu hình khả dĩ: {combos_str} -> Giao thoa: ô hàng {r+1} chắc chắn {cell_desc}."
+                        
+                        if self.update_cell(r, c, val, type="logic", reason=reason):
                             changed = True
 
             # ── Termination checks ────────────────────────────────────────────
@@ -321,11 +341,17 @@ class NonogramBoard:
 
             # (b) Apply combination, tagging entries as GUESS ─────────────────
             if line_type == "row":
+                clues = self.rows_clues[index]
                 for c, val in enumerate(combo):
-                    self.update_cell(index, c, val, type="GUESS")
+                    cell_desc = "đen" if val == 1 else "trống"
+                    reason = f"Giả định: Theo cấu hình thử nghiệm {combo} của Hàng {index+1} (Gợi ý {clues}) -> Đặt ô cột {c+1} thành {cell_desc}."
+                    self.update_cell(index, c, val, type="GUESS", reason=reason)
             else:
+                clues = self.cols_clues[index]
                 for r, val in enumerate(combo):
-                    self.update_cell(r, index, val, type="GUESS")
+                    cell_desc = "đen" if val == 1 else "trống"
+                    reason = f"Giả định: Theo cấu hình thử nghiệm {combo} của Cột {index+1} (Gợi ý {clues}) -> Đặt ô hàng {r+1} thành {cell_desc}."
+                    self.update_cell(r, index, val, type="GUESS", reason=reason)
 
             # (c) Recurse ─────────────────────────────────────────────────────
             if self.backtrack_solve():
@@ -343,11 +369,15 @@ class NonogramBoard:
                 # changed during the guess (val may differ from the restored val)
                 r_bt = entry["y"]
                 c_bt = entry["x"]
+                restored_val = self.grid[r_bt][c_bt]
+                cell_desc = "đen" if restored_val == 1 else ("trống" if restored_val == 0 else "trống/chưa rõ")
+                reason = f"Quay lui (Backtrack): Phát hiện mâu thuẫn -> Hoàn trả ô hàng {r_bt+1}, cột {c_bt+1} về trạng thái {cell_desc}."
                 self.history.append({
                     "x":    c_bt,
                     "y":    r_bt,
-                    "val":  self.grid[r_bt][c_bt],   # restored value
+                    "val":  restored_val,   # restored value
                     "type": "BACKTRACK",
+                    "reason": reason
                 })
 
         return False   # every branch failed

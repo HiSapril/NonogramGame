@@ -24,7 +24,7 @@ const PUZZLE_LIBRARY = {
   easy: {
     label: "⭐ Easy — 5×5 Frame",
     rows: [[5], [1, 1, 1], [1, 1, 1], [1, 1, 1], [5]],
-    cols: [[5], [1, 1, 1], [1, 1, 1], [1, 1, 1], [5]],
+    cols: [[5], [1, 1], [5], [1, 1], [5]],
   },
   medium: {
     label: "⭐⭐ Medium — 10×10 Classic",
@@ -89,6 +89,8 @@ const btnDelete       = document.getElementById("btn-delete");
 const speedControl    = document.getElementById("speed-control");
 const speedSlider     = document.getElementById("speed-slider");
 const speedLabel      = document.getElementById("speed-label");
+const explanationCard  = document.getElementById("step-explanation-card");
+const explanationText  = document.getElementById("explanation-text");
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -341,6 +343,7 @@ async function fetchAndSolve() {
 
   // Reset board & UI
   animationAborted = false;
+  if (explanationCard) explanationCard.hidden = true;
   resetGrid();
   btnSolve.disabled   = true;
   btnPlay.hidden      = true;
@@ -443,6 +446,7 @@ async function fetchAndSolve() {
 async function animateSteps() {
   animationRunning = true;
   animationAborted = false;
+  if (explanationCard) explanationCard.hidden = true;
 
   btnPlay.hidden  = true;
   btnPause.hidden = false;
@@ -646,6 +650,7 @@ function resetControls() {
   btnNext.hidden      = true;
   speedControl.hidden = true;
   btnSolve.disabled   = false;
+  if (explanationCard) explanationCard.hidden = true;
   setStatus("idle", "◈", "Select a puzzle and press ⚡ Solve, or fill cells manually.");
 }
 
@@ -754,6 +759,19 @@ btnPrev.addEventListener("click", () => {
     const isLast = (i === currentStepIndex - 1);
     applyStepInstant(currentSteps[i], isLast);
   }
+  
+  if (currentStepIndex > 0 && explanationText && explanationCard) {
+    const prevStep = currentSteps[currentStepIndex - 1];
+    if (prevStep && prevStep.reason) {
+      explanationText.textContent = prevStep.reason;
+      explanationCard.hidden = false;
+    } else {
+      explanationCard.hidden = true;
+    }
+  } else {
+    if (explanationCard) explanationCard.hidden = true;
+  }
+  
   setStatus("idle", "◈", `Step ${currentStepIndex} / ${currentSteps.length}`);
 });
 
@@ -765,6 +783,17 @@ btnNext.addEventListener("click", () => {
     const isLast = (i === currentStepIndex - 1);
     applyStepInstant(currentSteps[i], isLast);
   }
+  
+  if (explanationText && explanationCard) {
+    const lastStep = currentSteps[currentStepIndex - 1];
+    if (lastStep && lastStep.reason) {
+      explanationText.textContent = lastStep.reason;
+      explanationCard.hidden = false;
+    } else {
+      explanationCard.hidden = true;
+    }
+  }
+  
   setStatus("idle", "◈", `Step ${currentStepIndex} / ${currentSteps.length}`);
 });
 

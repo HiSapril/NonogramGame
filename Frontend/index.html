@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="description" content="Nonogram puzzle game with an AI solver." />
-  <title>Nonogram · Puzzle Solver</title>
+  <title>Nonogram</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="style.css" />
@@ -18,126 +18,140 @@
 
     <header id="header">
       <div class="header__logo">
-        <span class="logo-icon" aria-hidden="true">◼</span>
-        <span class="logo-text">Nonogram</span>
-        <span class="logo-badge">AI Solver</span>
+        <h1 class="logo-text">Nonogram</h1>
       </div>
       <p class="header__sub">Fill cells · Reveal the picture · Let the AI help</p>
     </header>
 
-    <section id="controls" aria-label="Puzzle controls">
+    <div class="dashboard-container">
+      <!-- Left Column: Main Game and stats -->
+      <div class="dashboard-main">
+        <div id="status-bar" role="status" aria-live="polite">
+          <span id="status-icon">◈</span>
+          <span id="status-text">Select a puzzle and press Solve, or fill cells manually.</span>
+          <div id="stats-pills" hidden>
+            <span class="pill" id="pill-time">—</span>
+            <span class="pill" id="pill-steps">—</span>
+            <span class="pill" id="pill-logic">—</span>
+            <span class="pill" id="pill-guess">—</span>
+          </div>
+        </div>
+        
+        <!-- Step Explanation Note (Only shown on Next/Prev clicks, hidden on Play) -->
+        <div id="step-explanation-card" class="explanation-card" hidden>
+          <div class="explanation-icon">💡</div>
+          <div class="explanation-body">
+            <span class="explanation-label">Giải thích bước đi</span>
+            <p id="explanation-text" class="explanation-text"></p>
+          </div>
+        </div>
 
-      <!-- Puzzle Library selector -->
-      <div class="controls__group">
-        <label class="control-label" for="puzzle-selector">Library</label>
-        <select id="puzzle-selector" class="control-input">
-          <option value="easy">⭐ Easy — 5×5 Frame</option>
-          <option value="medium">⭐⭐ Medium — 10×10 Classic</option>
-          <option value="hard">⭐⭐⭐ Hard — 15×15 Heart</option>
-          <option value="extreme">⭐⭐⭐⭐ Extreme — 20×20</option>
-          <option value="custom">✏️ Custom…</option>
-        </select>
-      </div>
+        <main id="nonogram-wrapper">
+          <div id="nonogram-container">
+            <div id="corner" aria-hidden="true"></div>
+            <div id="col-clues" role="list" aria-label="Column clues"></div>
+            <div id="row-clues" role="list" aria-label="Row clues"></div>
+            <div id="game-grid" role="grid" aria-label="Nonogram grid"></div>
+          </div>
+        </main>
 
-      <!-- Clue inputs (readonly for presets, editable for custom) -->
-      <div class="controls__group" id="custom-input-group">
-        <label class="control-label" for="custom-name">Tên câu đố</label>
-        <input id="custom-name" class="control-input" type="text" placeholder="e.g. My Puzzle" />
-        <label class="control-label" for="custom-rows">Rows clues</label>
-        <input id="custom-rows" class="control-input" type="text" placeholder="e.g. 3,1 | 2 | 1,1" />
-        <label class="control-label" for="custom-cols">Cols clues</label>
-        <input id="custom-cols" class="control-input" type="text" placeholder="e.g. 2 | 3 | 1,1" />
-        <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
-          <button id="btn-save" class="btn btn--accent" type="button" style="flex: 1;">💾 Save</button>
-          <button id="btn-delete" class="btn" type="button" style="flex: 1; background: #ef4444; color: white; border: none;" hidden>🗑 Delete</button>
+        <div id="legend" aria-label="Cell legend">
+          <div class="legend-item"><div class="legend-swatch swatch--empty"></div><span>Unknown</span></div>
+          <div class="legend-item"><div class="legend-swatch swatch--filled"></div><span>Filled</span></div>
+          <div class="legend-item"><div class="legend-swatch swatch--crossed"></div><span>Empty</span></div>
+          <div class="legend-item"><div class="legend-swatch swatch--logic"></div><span>Logic</span></div>
+          <div class="legend-item"><div class="legend-swatch swatch--guess"></div><span>Guess</span></div>
+          <div class="legend-item"><div class="legend-swatch swatch--backtrack"></div><span>Backtrack</span></div>
+        </div>
+
+        <div id="speed-control" hidden>
+          <label class="control-label" for="speed-slider">Speed <small>(right = faster)</small></label>
+          <input id="speed-slider" type="range" min="1" max="500" value="50" dir="rtl" />
+          <span id="speed-label">50 ms</span>
+        </div>
+
+        <div id="stats-panel" aria-label="Solver statistics">
+          <div class="stat-card" id="card-time">
+            <div class="stat-icon">⏱</div>
+            <div class="stat-body">
+              <span class="stat-value" id="stat-time">0 ms</span>
+              <span class="stat-label">Solve Time</span>
+            </div>
+          </div>
+          <div class="stat-card" id="card-steps">
+            <div class="stat-icon">📋</div>
+            <div class="stat-body">
+              <span class="stat-value" id="stat-steps">0</span>
+              <span class="stat-label">Total Moves</span>
+            </div>
+          </div>
+          <div class="stat-card" id="card-backtracks">
+            <div class="stat-icon">↩</div>
+            <div class="stat-body">
+              <span class="stat-value" id="stat-backtracks">0</span>
+              <span class="stat-label">Backtracks</span>
+            </div>
+          </div>
+          <div class="stat-card" id="card-logic">
+            <div class="stat-icon">🧠</div>
+            <div class="stat-body">
+              <span class="stat-value" id="stat-logic">0</span>
+              <span class="stat-label">Logic Steps</span>
+            </div>
+          </div>
+          <div class="stat-card" id="card-guess">
+            <div class="stat-icon">🎲</div>
+            <div class="stat-body">
+              <span class="stat-value" id="stat-guess">0</span>
+              <span class="stat-label">Guesses</span>
+            </div>
+          </div>
         </div>
       </div>
 
-      <!-- Action buttons -->
-      <div class="controls__actions">
-        <button id="btn-clear" class="btn btn--ghost"   type="button">🗑 Clear</button>
-        <button id="btn-reset" class="btn btn--ghost"   type="button">↺ Reset</button>
-        <button id="btn-solve" class="btn btn--primary" type="button">⚡ Solve</button>
-        <button id="btn-prev"  class="btn btn--ghost"   type="button" hidden>⏮ Prev</button>
-        <button id="btn-play"  class="btn btn--accent"  type="button" hidden>▶ Play</button>
-        <button id="btn-pause" class="btn btn--ghost"   type="button" hidden>⏸ Pause</button>
-        <button id="btn-next"  class="btn btn--ghost"   type="button" hidden>⏭ Next</button>
-      </div>
+      <!-- Right Column: Controls -->
+      <aside class="dashboard-sidebar">
+        <section id="controls" aria-label="Puzzle controls">
 
-    </section>
+          <!-- Puzzle Library selector -->
+          <div class="controls__group">
+            <label class="control-label" for="puzzle-selector">Library</label>
+            <select id="puzzle-selector" class="control-input">
+              <option value="easy">⭐ Easy — 5×5 Frame</option>
+              <option value="medium">⭐⭐ Medium — 10×10 Classic</option>
+              <option value="hard">⭐⭐⭐ Hard — 15×15 Heart</option>
+              <option value="extreme">⭐⭐⭐⭐ Extreme — 20×20</option>
+              <option value="custom">✏️ Custom…</option>
+            </select>
+          </div>
 
-    <!-- Statistics Dashboard -->
-    <div id="stats-panel" aria-label="Solver statistics">
-      <div class="stat-card" id="card-time">
-        <div class="stat-icon">⏱</div>
-        <div class="stat-body">
-          <span class="stat-value" id="stat-time">0 ms</span>
-          <span class="stat-label">Solve Time</span>
-        </div>
-      </div>
-      <div class="stat-card" id="card-steps">
-        <div class="stat-icon">📋</div>
-        <div class="stat-body">
-          <span class="stat-value" id="stat-steps">0</span>
-          <span class="stat-label">Total Moves</span>
-        </div>
-      </div>
-      <div class="stat-card" id="card-backtracks">
-        <div class="stat-icon">↩</div>
-        <div class="stat-body">
-          <span class="stat-value" id="stat-backtracks">0</span>
-          <span class="stat-label">Backtracks</span>
-        </div>
-      </div>
-      <div class="stat-card" id="card-logic">
-        <div class="stat-icon">🧠</div>
-        <div class="stat-body">
-          <span class="stat-value" id="stat-logic">0</span>
-          <span class="stat-label">Logic Steps</span>
-        </div>
-      </div>
-      <div class="stat-card" id="card-guess">
-        <div class="stat-icon">🎲</div>
-        <div class="stat-body">
-          <span class="stat-value" id="stat-guess">0</span>
-          <span class="stat-label">Guesses</span>
-        </div>
-      </div>
-    </div>
+          <!-- Clue inputs (readonly for presets, editable for custom) -->
+          <div class="controls__group" id="custom-input-group">
+            <label class="control-label" for="custom-name">Tên câu đố</label>
+            <input id="custom-name" class="control-input" type="text" placeholder="e.g. My Puzzle" />
+            <label class="control-label" for="custom-rows">Rows clues</label>
+            <input id="custom-rows" class="control-input" type="text" placeholder="e.g. 3,1 | 2 | 1,1" />
+            <label class="control-label" for="custom-cols">Cols clues</label>
+            <input id="custom-cols" class="control-input" type="text" placeholder="e.g. 2 | 3 | 1,1" />
+            <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
+              <button id="btn-save" class="btn btn--accent" type="button" style="flex: 1;">💾 Save</button>
+              <button id="btn-delete" class="btn" type="button" style="flex: 1; background: #ef4444; color: white; border: none;" hidden>🗑 Delete</button>
+            </div>
+          </div>
 
-    <div id="status-bar" role="status" aria-live="polite">
-      <span id="status-icon">◈</span>
-      <span id="status-text">Select a puzzle and press Solve, or fill cells manually.</span>
-      <div id="stats-pills" hidden>
-        <span class="pill" id="pill-time">—</span>
-        <span class="pill" id="pill-steps">—</span>
-        <span class="pill" id="pill-logic">—</span>
-        <span class="pill" id="pill-guess">—</span>
-      </div>
-    </div>
+          <!-- Action buttons -->
+          <div class="controls__actions">
+            <button id="btn-clear" class="btn btn--ghost"   type="button">🗑 Clear</button>
+            <button id="btn-reset" class="btn btn--ghost"   type="button">↺ Reset</button>
+            <button id="btn-solve" class="btn btn--primary" type="button">⚡ Solve</button>
+            <button id="btn-prev"  class="btn btn--ghost"   type="button" hidden>⏮ Prev</button>
+            <button id="btn-play"  class="btn btn--accent"  type="button" hidden>▶ Play</button>
+            <button id="btn-pause" class="btn btn--ghost"   type="button" hidden>⏸ Pause</button>
+            <button id="btn-next"  class="btn btn--ghost"   type="button" hidden>⏭ Next</button>
+          </div>
 
-    <div id="legend" aria-label="Cell legend">
-      <div class="legend-item"><div class="legend-swatch swatch--empty"></div><span>Unknown</span></div>
-      <div class="legend-item"><div class="legend-swatch swatch--filled"></div><span>Filled</span></div>
-      <div class="legend-item"><div class="legend-swatch swatch--crossed"></div><span>Empty</span></div>
-      <div class="legend-item"><div class="legend-swatch swatch--logic"></div><span>Logic</span></div>
-      <div class="legend-item"><div class="legend-swatch swatch--guess"></div><span>Guess</span></div>
-      <div class="legend-item"><div class="legend-swatch swatch--backtrack"></div><span>Backtrack</span></div>
-    </div>
-
-    <main id="nonogram-wrapper">
-      <div id="nonogram-container">
-        <div id="corner" aria-hidden="true"></div>
-        <div id="col-clues" role="list" aria-label="Column clues"></div>
-        <div id="row-clues" role="list" aria-label="Row clues"></div>
-        <div id="game-grid" role="grid" aria-label="Nonogram grid"></div>
-      </div>
-    </main>
-
-    <div id="speed-control" hidden>
-      <label class="control-label" for="speed-slider">Speed <small>(right = faster)</small></label>
-      <input id="speed-slider" type="range" min="1" max="500" value="50" dir="rtl" />
-      <span id="speed-label">50 ms</span>
+        </section>
+      </aside>
     </div>
 
   </div>

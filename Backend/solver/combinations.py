@@ -44,14 +44,14 @@ def generate_combinations(clues: List[int], length: int) -> List[List[int]]:
     >>> generate_combinations([5], 3)
     []
     """
-    # Normalize clues: [0] or empty clues mean no black blocks
+    # Chuẩn hóa gợi ý: [0] hoặc gợi ý rỗng nghĩa là không có khối ô đen nào
     clues = [c for c in clues if c > 0]
 
-    # Convert to tuple so it is hashable for lru_cache
+    # Chuyển sang tuple để có thể băm (hashable) cho lru_cache
     clues_tuple = tuple(clues)
 
-    # Minimum space required:
-    #   sum of all block sizes + at least (n-1) separator whites between n blocks
+    # Không gian tối thiểu cần thiết:
+    #   tổng của tất cả kích thước khối + ít nhất (n-1) khoảng trắng ngăn cách giữa n khối
     min_length = sum(clues_tuple) + max(len(clues_tuple) - 1, 0)
     if min_length > length:
         return []
@@ -74,12 +74,12 @@ def generate_combinations(clues: List[int], length: int) -> List[List[int]]:
             Mỗi phần tử là một tuple gồm các số 0/1 biểu diễn
             một hậu tố hợp lệ.
         """
-        # ── Base case: no clues left ──────────────────────────────────────────
+        # ── Trường hợp cơ sở: không còn gợi ý nào ──────────────────────────────────
         if not remaining_clues:
-            # All remaining cells must be white
+            # Tất cả các ô còn lại phải là màu trắng
             return [(0,) * remaining_length]
 
-        # ── Pruning: not enough space for the remaining clues ─────────────────
+        # ── Tỉa nhánh: không đủ không gian cho các gợi ý còn lại ─────────────────
         min_needed = sum(remaining_clues) + len(remaining_clues) - 1
         if min_needed > remaining_length:
             return []
@@ -88,35 +88,35 @@ def generate_combinations(clues: List[int], length: int) -> List[List[int]]:
         rest  = remaining_clues[1:]
         results: List[Tuple[int, ...]] = []
 
-        # Number of positions at which the current block can START.
-        # The block (plus its mandatory trailing white, if more clues follow)
-        # must fit within the remaining space.
-        trailing = 1 if rest else 0          # mandatory separator after block
+        # Số lượng vị trí mà khối hiện tại có thể BẮT ĐẦU.
+        # Khối (cộng thêm ô trắng bắt buộc theo sau, nếu còn gợi ý tiếp theo)
+        # phải vừa với không gian còn lại.
+        trailing = 1 if rest else 0          # dải phân cách bắt buộc sau khối
         max_start = remaining_length - block - trailing - (sum(rest) + len(rest) - 1 if rest else 0)
 
         for start in range(max_start + 1):
-            # `start` white cells before the block
+            # `start` ô trắng trước khối
             prefix: Tuple[int, ...] = (0,) * start + (1,) * block
 
             if rest:
-                # Mandatory single white separator, then recurse
+                # Ô trắng phân cách bắt buộc duy nhất, sau đó đệ quy
                 prefix += (0,)
                 suffix_length = remaining_length - len(prefix)
                 for suffix in _solve(rest, suffix_length):
                     results.append(prefix + suffix)
             else:
-                # Last block: pad remaining cells with whites
+                # Khối cuối cùng: lấp đầy các ô còn lại bằng ô trắng
                 whites_after = remaining_length - len(prefix)
                 results.append(prefix + (0,) * whites_after)
 
         return results
 
     raw_results = _solve(clues_tuple, length)
-    # Convert tuples → lists for a friendlier public API
+    # Chuyển đổi tuple → list để cung cấp API thân thiện hơn
     return [list(config) for config in raw_results]
 
 
-# ── Quick self-test when run directly ────────────────────────────────────────
+# ── Kiểm thử nhanh khi chạy trực tiếp ────────────────────────────────────────
 if __name__ == "__main__":
     test_cases = [
         (([2, 1], 5),  [[1, 1, 0, 1, 0], [1, 1, 0, 0, 1], [0, 1, 1, 0, 1]]),

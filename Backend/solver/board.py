@@ -12,16 +12,16 @@ import copy
 from typing import List, Dict, Any, Optional, Tuple
 
 try:
-    # Package import (normal usage: `from solver.board import NonogramBoard`)
+    # Nhập gói (cách dùng thông thường: từ solver.board nhập NonogramBoard)
     from .combinations import generate_combinations
     from .overlap import get_overlap, ImpossibleStateError
 except ImportError:
-    # Direct run: `python board.py`
+    # Chạy trực tiếp: python board.py
     from combinations import generate_combinations          # type: ignore
     from overlap import get_overlap, ImpossibleStateError   # type: ignore
 
 
-# ── Type aliases ──────────────────────────────────────────────────────────────
+# ── Bí danh kiểu dữ liệu (Type aliases) ─────────────────────────────────────────────────
 Clues     = List[int]
 Grid      = List[List[int]]
 HistEntry = Dict[str, Any]   # {"x": int, "y": int, "val": int, "type": str}
@@ -58,25 +58,25 @@ class NonogramBoard:
         self.num_rows: int = len(rows_clues)
         self.num_cols: int = len(cols_clues)
 
-        # Grid initialised to -1 (all unknown)
+        # Lưới được khởi tạo là -1 (tất cả chưa xác định)
         self.grid: Grid = [
             [-1] * self.num_cols for _ in range(self.num_rows)
         ]
 
-        # Full audit trail of every cell change
+        # Lịch sử kiểm tra đầy đủ của mọi thay đổi ô
         self.history: List[HistEntry] = []
 
-    # ── Accessors ─────────────────────────────────────────────────────────────
+    # ── Các phương thức truy cập (Accessors) ─────────────────────────────────────────────────────
 
     def get_row(self, index: int) -> List[int]:
-        """Return a *copy* of the current state of row ``index``."""
+        """Trả về một *bản sao* trạng thái hiện tại của hàng ``index``."""
         return list(self.grid[index])
 
     def get_col(self, index: int) -> List[int]:
-        """Return a *copy* of the current state of column ``index``."""
+        """Trả về một *bản sao* trạng thái hiện tại của cột ``index``."""
         return [self.grid[r][index] for r in range(self.num_rows)]
 
-    # ── Mutation ──────────────────────────────────────────────────────────────
+    # ── Các phương thức thay đổi (Mutation) ──────────────────────────────────────────────────────
 
     def update_cell(self, r: int, c: int, val: int, type: str = "logic", reason: str = "") -> bool:
         """
@@ -104,16 +104,16 @@ class NonogramBoard:
             ``True`` nếu ô thực sự được thay đổi, ngược lại là ``False``.
         """
         if self.grid[r][c] == val:
-            return False   # no change — skip
+            return False   # không có thay đổi — bỏ qua
 
         self.grid[r][c] = val
         self.history.append({"x": c, "y": r, "val": val, "type": type, "reason": reason})
         return True
 
-    # ── Status checks ─────────────────────────────────────────────────────────
+    # ── Kiểm tra trạng thái (Status checks) ─────────────────────────────────────────────────
 
     def is_solved(self) -> bool:
-        """Return ``True`` when every cell has been determined (no -1 left)."""
+        """Trả về ``True`` khi mọi ô đã được xác định (không còn ô -1)."""
         return all(
             self.grid[r][c] != -1
             for r in range(self.num_rows)
@@ -140,7 +140,7 @@ class NonogramBoard:
 
         return False
 
-    # ── Constraint propagation ────────────────────────────────────────────────
+    # ── Lan truyền ràng buộc (Constraint propagation) ────────────────────────────────────────────────
 
     def apply_logic(self) -> bool:
         """
@@ -168,15 +168,15 @@ class NonogramBoard:
         while True:
             changed = False
 
-            # ── Row pass ──────────────────────────────────────────────────────
+            # ── Quét hàng (Row pass) ──────────────────────────────────────────────────────
             for r in range(self.num_rows):
                 combos = self._filtered_combinations("row", r)
 
                 if combos is None:
-                    continue   # row has no unknowns; nothing to do
+                    continue   # hàng không còn ô nào chưa biết; không cần làm gì cả
 
                 if len(combos) == 0:
-                    return False   # conflict — no valid combo for this row
+                    return False   # mâu thuẫn — không có tổ hợp hợp lệ nào cho hàng này
 
                 try:
                     overlap = get_overlap(combos, self.num_cols)
@@ -197,7 +197,7 @@ class NonogramBoard:
                         if self.update_cell(r, c, val, type="logic", reason=reason):
                             changed = True
 
-            # ── Column pass ───────────────────────────────────────────────────
+            # ── Quét cột (Column pass) ───────────────────────────────────────────────────
             for c in range(self.num_cols):
                 combos = self._filtered_combinations("col", c)
 
@@ -226,15 +226,15 @@ class NonogramBoard:
                         if self.update_cell(r, c, val, type="logic", reason=reason):
                             changed = True
 
-            # ── Termination checks ────────────────────────────────────────────
+            # ── Kiểm tra kết thúc (Termination checks) ────────────────────────────────────────────
             if self.is_solved():
                 return True
 
             if not changed:
-                # No progress made — logic alone cannot proceed further
+                # Không tiến triển thêm — riêng suy luận logic không thể tiếp tục tiến xa hơn
                 return False
 
-    # ── MRV heuristic ──────────────────────────────────────────────────────────
+    # ── Heuristic MRV ──────────────────────────────────────────────────────────
 
     def get_mrv_line(self) -> Optional[Tuple[str, int]]:
         """
@@ -265,7 +265,7 @@ class NonogramBoard:
         for r in range(self.num_rows):
             combos = self._filtered_combinations("row", r)
             if combos is None:
-                continue                  # line is fully determined
+                continue                  # dòng đã được xác định hoàn toàn
             count = len(combos)
             if 1 < count < best_count:
                 best_count = count
@@ -286,7 +286,7 @@ class NonogramBoard:
             return None
         return (best_type, best_index)
 
-    # ── Backtracking solver ───────────────────────────────────────────────────
+    # ── Bộ giải quay lui (Backtracking solver) ───────────────────────────────────────────────────
 
     def backtrack_solve(self) -> bool:
         """
@@ -318,35 +318,35 @@ class NonogramBoard:
         bool
             ``True`` nếu câu đố được giải, ``False`` nếu không thể giải được.
         """
-        # ── Step 1: simplify ──────────────────────────────────────────────────
+        # ── Bước 1: Đơn giản hóa ──────────────────────────────────────────────────
         self.apply_logic()
 
-        # ── Step 2: base cases ────────────────────────────────────────────────
+        # ── Bước 2: Các trường hợp cơ sở ────────────────────────────────────────────────
         if self.is_invalid():
             return False
         if self.is_solved():
             return True
 
-        # ── Step 3: pick the most-constrained line (MRV) ─────────────────────
+        # ── Bước 3: Chọn dòng bị ràng buộc nhiều nhất (MRV) ─────────────────────
         mrv = self.get_mrv_line()
         if mrv is None:
-            # Every line is determined but board not flagged solved — edge case
+            # Mọi dòng đã được xác định nhưng bảng chưa được đánh dấu đã giải — trường hợp đặc biệt
             return self.is_solved()
 
         line_type, index = mrv
 
-        # ── Step 4: get all valid combinations for the chosen line ────────────
+        # ── Bước 4: Lấy tất cả các tổ hợp hợp lệ cho dòng đã chọn ────────────
         combos = self._filtered_combinations(line_type, index)
         if not combos:
-            return False   # no options — contradiction
+            return False   # không có lựa chọn nào — mâu thuẫn
 
-        # ── Step 5: branch over each candidate combination ────────────────────
+        # ── Bước 5: Phân nhánh qua từng tổ hợp ứng viên ────────────────────
         for combo in combos:
-            # (a) Save state ──────────────────────────────────────────────────
+            # (a) Lưu trạng thái ──────────────────────────────────────────────────
             saved_grid    = copy.deepcopy(self.grid)
             saved_hist_len = len(self.history)
 
-            # (b) Apply combination, tagging entries as GUESS ─────────────────
+            # (b) Áp dụng tổ hợp, đánh dấu các mục là GUESS ─────────────────
             if line_type == "row":
                 clues = self.rows_clues[index]
                 for c, val in enumerate(combo):
@@ -360,20 +360,20 @@ class NonogramBoard:
                     reason = f"Giả định: Theo cấu hình thử nghiệm {combo} của Cột {index+1} (Gợi ý {clues}) -> Đặt ô hàng {r+1} thành {cell_desc}."
                     self.update_cell(r, index, val, type="GUESS", reason=reason)
 
-            # (c) Recurse ─────────────────────────────────────────────────────
+            # (c) Đệ quy ─────────────────────────────────────────────────────
             if self.backtrack_solve():
-                return True   # (d) propagate success
+                return True   # (d) truyền thành công ngược lên
 
-            # (e) Restore — grid snapshot + BACKTRACK history entries ──────────
+            # (e) Khôi phục — ảnh chụp nhanh lưới + các mục lịch sử BACKTRACK ──────────
             self.grid = saved_grid
 
-            # Record each reverted cell as BACKTRACK for the frontend
+            # Ghi lại mỗi ô đã hoàn tác dưới dạng BACKTRACK cho frontend
             guess_entries = self.history[saved_hist_len:]
-            del self.history[saved_hist_len:]   # trim speculative entries
+            del self.history[saved_hist_len:]   # cắt tỉa bớt các mục phỏng đoán speculative
 
             for entry in guess_entries:
-                # Emit a BACKTRACK entry only for cells that were actually
-                # changed during the guess (val may differ from the restored val)
+                # Chỉ phát ra mục BACKTRACK cho những ô thực sự đã bị
+                # thay đổi trong quá trình phỏng đoán (val có thể khác với val đã phục hồi)
                 r_bt = entry["y"]
                 c_bt = entry["x"]
                 restored_val = self.grid[r_bt][c_bt]
@@ -382,14 +382,14 @@ class NonogramBoard:
                 self.history.append({
                     "x":    c_bt,
                     "y":    r_bt,
-                    "val":  restored_val,   # restored value
+                    "val":  restored_val,   # giá trị được khôi phục
                     "type": "BACKTRACK",
                     "reason": reason
                 })
 
-        return False   # every branch failed
+        return False   # mọi nhánh đều thất bại
 
-    # ── Private helpers ───────────────────────────────────────────────────────
+    # ── Các hàm trợ giúp riêng tư (Private helpers) ───────────────────────────────────────────────────────
 
     def _filtered_combinations(
         self, line_type: str, index: int
@@ -418,7 +418,7 @@ class NonogramBoard:
             length = self.num_rows
             current = self.get_col(index)
 
-        # Fast-path: line is already fully determined
+        # Fast-path: dòng đã được xác định hoàn toàn
         if -1 not in current:
             blocks = []
             count = 0
@@ -438,7 +438,7 @@ class NonogramBoard:
 
         all_combos = generate_combinations(clues, length)
 
-        # Filter: keep only combinations compatible with fixed cells
+        # Bộ lọc: chỉ giữ lại các tổ hợp tương thích với các ô cố định
         return [
             combo for combo in all_combos
             if all(
@@ -450,7 +450,7 @@ class NonogramBoard:
     # ── Display ───────────────────────────────────────────────────────────────
 
     def __str__(self) -> str:
-        """Pretty-print the grid. Uses '#' for black, '.' for white, '?' for unknown."""
+        """In bảng lưới ra màn hình một cách đẹp đẽ. Sử dụng '#' cho ô đen, '.' cho ô trắng, '?' cho ô chưa xác định."""
         symbol = {1: "#", 0: ".", -1: "?"}
         rows = [
             " ".join(symbol[self.grid[r][c]] for c in range(self.num_cols))
@@ -467,14 +467,14 @@ class NonogramBoard:
         )
 
 
-# ── Self-test ─────────────────────────────────────────────────────────────────
+# ── Tự kiểm thử (Self-test) ─────────────────────────────────────────────────────────────────
 if __name__ == "__main__":
-    # ── Test 1: 5x5 'frame+cross' puzzle — uniquely solvable by logic ──────────
+    # ── Test 1: Câu đố 5x5 'khung + chữ thập' — có thể giải duy nhất bằng logic ──────────
     #
-    #   Row clues : [5], [1,1,1], [1,1,1], [1,1,1], [5]
-    #   Col clues : [5], [1,1,1], [1,1,1], [1,1,1], [5]
+    #   Gợi ý hàng : [5], [1,1,1], [1,1,1], [1,1,1], [5]
+    #   Gợi ý cột  : [5], [1,1,1], [1,1,1], [1,1,1], [5]
     #
-    #   Expected solution:
+    #   Giải pháp mong đợi:
     #   # # # # #
     #   # . # . #
     #   # . # . #
@@ -485,8 +485,8 @@ if __name__ == "__main__":
 
     board = NonogramBoard(rows_clues, cols_clues)
 
-    assert not board.is_solved(),  "New board should not be solved"
-    assert not board.is_invalid(), "New board should not be invalid"
+    assert not board.is_solved(),  "Bảng mới không được coi là đã giải xong"
+    assert not board.is_invalid(), "Bảng mới không được coi là không hợp lệ"
 
     solved = board.apply_logic()
     print("=== Test 1: 5x5 'frame+cross' puzzle ===")
@@ -494,43 +494,43 @@ if __name__ == "__main__":
     print(f"Solved by logic: {solved}")
     print(f"History entries: {len(board.history)}")
     print(f"repr: {board!r}")
-    assert solved,        "Puzzle should be solvable by logic alone"
+    assert solved,        "Câu đố phải giải được chỉ bằng logic"
     assert board.is_solved()
     print("[PASS] Test 1\n")
 
-    # ── Test 2: update_cell skips duplicate writes ─────────────────────────────
+    # ── Test 2: update_cell bỏ qua ghi đè trùng lặp ─────────────────────────────
     board2 = NonogramBoard([[1]], [[1]])
     changed1 = board2.update_cell(0, 0, 1, "user")
-    changed2 = board2.update_cell(0, 0, 1, "user")   # same value — should skip
+    changed2 = board2.update_cell(0, 0, 1, "user")   # cùng giá trị — nên bỏ qua
     assert changed1 is True
     assert changed2 is False
-    assert len(board2.history) == 1, "History should have exactly 1 entry"
+    assert len(board2.history) == 1, "Lịch sử phải có chính xác 1 mục ghi chép"
     print("[PASS] Test 2: update_cell skips duplicates\n")
 
-    # ── Test 3: is_invalid on a contradictory board ───────────────────────────
-    # Force a contradiction: clue=[3] but length=3, then pre-fill cell 1 as 0
+    # ── Test 3: is_invalid trên một bảng mâu thuẫn ───────────────────────────
+    # Buộc xảy ra mâu thuẫn: gợi ý=[3] nhưng độ dài=3, sau đó điền trước ô thứ 1 là 0
     board3 = NonogramBoard([[3]], [[1], [1], [1]])
-    board3.grid[0][1] = 0   # middle cell white — impossible for clue [3]
-    assert board3.is_invalid(), "Board with impossible row should be invalid"
+    board3.grid[0][1] = 0   # ô giữa màu trắng — điều không thể đối với gợi ý [3]
+    assert board3.is_invalid(), "Bảng có hàng bất khả thi phải bị coi là không hợp lệ"
     print("[PASS] Test 3: is_invalid detects contradiction\n")
 
-    # ── Test 4: get_row / get_col return copies ───────────────────────────────
+    # ── Test 4: get_row / get_col trả về các bản sao riêng biệt ───────────────────────────────
     board4 = NonogramBoard([[1, 1]], [[1], [1], [1]])
     row = board4.get_row(0)
-    row[0] = 999           # mutating the copy must not affect the grid
+    row[0] = 999           # thay đổi bản sao không được ảnh hưởng đến bảng lưới
     assert board4.grid[0][0] == -1
     col = board4.get_col(0)
     col[0] = 999
     assert board4.grid[0][0] == -1
     print("[PASS] Test 4: get_row/get_col return independent copies\n")
 
-    # ── Test 5: puzzle that requires backtracking ────────────────────────────
+    # ── Test 5: Câu đố yêu cầu thuật toán quay lui (backtracking) ────────────────────────────
     #
-    #   A 5x5 puzzle that cannot be fully solved by constraint propagation
-    #   alone — requires at least one guess + possible backtrack.
+    #   Một câu đố 5x5 không thể giải hoàn toàn chỉ bằng lan truyền ràng buộc
+    #   thông thường — yêu cầu ít nhất một phỏng đoán + khả năng quay lui.
     #
-    #   Row clues: [1,1], [2], [1,1], [2], [1,1]
-    #   Col clues: [1,1], [2], [1,1], [2], [1,1]
+    #   Gợi ý hàng: [1,1], [2], [1,1], [2], [1,1]
+    #   Gợi ý cột : [1,1], [2], [1,1], [2], [1,1]
     rows_clues5 = [[1, 1], [2], [1, 1], [2], [1, 1]]
     cols_clues5 = [[1, 1], [2], [1, 1], [2], [1, 1]]
 
@@ -541,17 +541,17 @@ if __name__ == "__main__":
     guess_count     = sum(1 for h in board5.history if h["type"] == "GUESS")
     backtrack_count = sum(1 for h in board5.history if h["type"] == "BACKTRACK")
     print(f"Solved: {result5}  |  GUESS entries: {guess_count}  |  BACKTRACK entries: {backtrack_count}")
-    assert result5, "Backtracking should solve the puzzle"
+    assert result5, "Thuật toán quay lui phải giải được câu đố"
     assert board5.is_solved()
     print("[PASS] Test 5\n")
 
-    # ── Test 6: unsolvable puzzle — backtrack must return False ───────────────
-    # Row clue [3] in a 2-cell row is impossible from the start.
+    # ── Test 6: Câu đố không thể giải — backtrack phải trả về False ───────────────
+    # Hàng có gợi ý [3] trên dòng có 2 ô là điều không thể ngay từ đầu.
     rows_clues6 = [[3], [1]]
     cols_clues6 = [[1], [1]]
     board6 = NonogramBoard(rows_clues6, cols_clues6)
     result6 = board6.backtrack_solve()
-    assert not result6, "Unsolvable puzzle should return False"
+    assert not result6, "Câu đố bất khả thi phải trả về False"
     print("[PASS] Test 6: unsolvable puzzle returns False\n")
 
     print("All tests passed!")

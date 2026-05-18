@@ -12,7 +12,7 @@ from typing import List, Optional
 
 
 class ImpossibleStateError(Exception):
-    """Raised when the combination list is empty (board state is unsolvable)."""
+    """Được phát sinh khi danh sách tổ hợp rỗng (trạng thái bảng không thể giải được)."""
 
 
 def get_overlap(combinations: List[List[int]], length: int) -> Optional[List[int]]:
@@ -58,31 +58,31 @@ def get_overlap(combinations: List[List[int]], length: int) -> Optional[List[int
     """
     if not combinations:
         raise ImpossibleStateError(
-            "No valid combinations exist — the current board state is impossible."
+            "Không tồn tại tổ hợp hợp lệ nào — trạng thái bảng hiện tại không thể xảy ra."
         )
 
     result: List[int] = []
 
-    # zip(*combinations) transposes the list-of-rows into a list-of-columns,
-    # so `column` is a tuple of the i-th cell value from every combination.
-    # This is an O(n * k) pass with no extra intermediate structures.
+    # zip(*combinations) chuyển vị danh sách các hàng thành danh sách các cột,
+    # vì vậy `column` là một tuple chứa giá trị ô thứ i từ mọi tổ hợp.
+    # Đây là một lượt quét O(n * k) không cần thêm các cấu trúc trung gian.
     for column in zip(*combinations):
         first = column[0]
-        # all() short-circuits on the first mismatch → efficient for large sets
+        # all() sẽ ngắt ngắn mạch ngay khi có sự không khớp đầu tiên → hiệu quả cho các tập hợp lớn
         if all(cell == first for cell in column):
-            result.append(first)   # definitely 1 or definitely 0
+            result.append(first)   # chắc chắn là 1 hoặc chắc chắn là 0
         else:
-            result.append(-1)      # varies → unknown
+            result.append(-1)      # thay đổi → chưa xác định
 
     return result
 
 
-# ── Quick self-test when run directly ────────────────────────────────────────
+# ── Kiểm thử nhanh khi chạy trực tiếp ────────────────────────────────────────
 if __name__ == "__main__":
     import traceback
 
     test_cases = [
-        # (combinations, length, expected_output)
+        # (tổ hợp, độ dài, đầu ra mong đợi)
         ([[1, 1, 0, 1], [1, 1, 0, 0]],                          4, [1, 1, 0, -1]),
         ([[1, 1, 0, 1, 0], [1, 1, 0, 0, 1], [0, 1, 1, 0, 1]],  5, [-1, 1, -1, -1, -1]),
         ([[0, 0, 0, 0]],                                          4, [0, 0, 0, 0]),
@@ -103,7 +103,7 @@ if __name__ == "__main__":
             print(f"       Expected : {expected}")
             print(f"       Got      : {result}")
 
-    # Edge case: empty combinations must raise ImpossibleStateError
+    # Trường hợp đặc biệt: tổ hợp rỗng phải phát sinh lỗi ImpossibleStateError
     try:
         get_overlap([], 5)
         print("[FAIL] | empty combinations — expected ImpossibleStateError, but no error raised")

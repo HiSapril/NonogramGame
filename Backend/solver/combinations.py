@@ -42,6 +42,9 @@ def generate_combinations(clues: List[int], length: int) -> List[List[int]]:
     >>> generate_combinations([5], 3)
     []
     """
+    # Normalize clues: [0] or empty clues mean no black blocks
+    clues = [c for c in clues if c > 0]
+
     # Convert to tuple so it is hashable for lru_cache
     clues_tuple = tuple(clues)
 

@@ -422,7 +422,8 @@ class NonogramBoard:
                     count = 0
             if count > 0:
                 blocks.append(count)
-            if blocks == clues:
+            normalized_clues = [c for c in clues if c > 0]
+            if blocks == normalized_clues:
                 return None
             else:
                 return []

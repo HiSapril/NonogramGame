@@ -1,12 +1,13 @@
 """
 combinations.py
 ---------------
-Nonogram solver utility: generates all valid line configurations that satisfy
-a given set of clues within a fixed length.
+Nonogram solver utility: tạo tất cả các cấu hình dòng hợp lệ thỏa mãn
+một tập gợi ý cho trước trong một độ dài cố định.
 
-A "configuration" is a list of 0s (white) and 1s (black) where consecutive 1s
-form blocks whose lengths exactly match the clues, and every pair of adjacent
-blocks is separated by at least one 0.
+Một "cấu hình" là danh sách gồm các số 0 (ô trắng) và 1 (ô đen),
+trong đó các số 1 liên tiếp tạo thành các khối có độ dài khớp chính xác
+với các gợi ý, và mỗi cặp khối liền kề phải được ngăn cách bởi ít nhất
+một số 0.
 """
 
 from functools import lru_cache
@@ -15,24 +16,25 @@ from typing import List, Tuple
 
 def generate_combinations(clues: List[int], length: int) -> List[List[int]]:
     """
-    Generate all valid configurations for a nonogram row/column.
+    Tạo tất cả các cấu hình hợp lệ cho một hàng/cột trong Nonogram.
 
-    Parameters
-    ----------
-    clues : List[int]
-        Ordered block lengths of consecutive black cells.
-        Example: [3, 1] means a block of 3 blacks then a block of 1 black.
-    length : int
-        Total number of cells in the row or column.
-
-    Returns
+    Tham số
     -------
-    List[List[int]]
-        All valid configurations as lists of 0s and 1s.
-        Returns an empty list if the clues cannot fit in the given length.
+    clues : List[int]
+        Độ dài các khối ô đen liên tiếp theo đúng thứ tự.
+        Ví dụ: [3, 1] nghĩa là một khối gồm 3 ô đen,
+        sau đó là một khối gồm 1 ô đen.
+    length : int
+        Tổng số ô trong hàng hoặc cột.
 
-    Examples
-    --------
+    Giá trị trả về
+    --------------
+    List[List[int]]
+        Tất cả các cấu hình hợp lệ dưới dạng danh sách các số 0 và 1.
+        Trả về danh sách rỗng nếu các gợi ý không thể vừa trong độ dài đã cho.
+
+    Ví dụ
+    -----
     >>> generate_combinations([2, 1], 5)
     [[1, 1, 0, 1, 0], [1, 1, 0, 0, 1], [0, 1, 1, 0, 1]]
 
@@ -57,19 +59,20 @@ def generate_combinations(clues: List[int], length: int) -> List[List[int]]:
     @lru_cache(maxsize=None)
     def _solve(remaining_clues: Tuple[int, ...], remaining_length: int) -> List[Tuple[int, ...]]:
         """
-        Recursively build all valid suffixes.
+        Đệ quy xây dựng tất cả các hậu tố hợp lệ.
 
-        Parameters
-        ----------
-        remaining_clues : Tuple[int, ...]
-            Clues that have not yet been placed.
-        remaining_length : int
-            Number of cells still available.
-
-        Returns
+        Tham số
         -------
+        remaining_clues : Tuple[int, ...]
+            Các gợi ý chưa được đặt.
+        remaining_length : int
+            Số lượng ô còn khả dụng.
+
+        Giá trị trả về
+        --------------
         List[Tuple[int, ...]]
-            Each element is a tuple of 0s/1s representing a valid suffix.
+            Mỗi phần tử là một tuple gồm các số 0/1 biểu diễn
+            một hậu tố hợp lệ.
         """
         # ── Base case: no clues left ──────────────────────────────────────────
         if not remaining_clues:

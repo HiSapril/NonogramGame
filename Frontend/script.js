@@ -3,10 +3,11 @@
  *
  * Architecture
  * ────────────
- * renderBoard(rowsClues, colsClues) — builds DOM (clues + grid cells)
- * fetchAndSolve()                   — async: POST /solve → animateSteps()
- * animateSteps(steps)               — async: replays every solver step
- * sleep(ms)                         — Promise-based delay utility
+ * renderBoard(rowsClues, colsClues) — xây dựng DOM (gợi ý + các ô lưới)
+ * fetchAndSolve()                   — bất đồng bộ: POST /solve → animateSteps()
+ * animateSteps(steps)               — bất đồng bộ: phát lại từng bước giải
+                                       của trình giải
+ * sleep(ms)                         — tiện ích tạo độ trễ dựa trên Promise
  */
 
 "use strict";
@@ -50,53 +51,53 @@ const PUZZLE_LIBRARY = {
 };
 
 // ── State ─────────────────────────────────────────────────────────────────────
-let currentRowsClues  = PUZZLE_LIBRARY.easy.rows;
-let currentColsClues  = PUZZLE_LIBRARY.easy.cols;
-let animationRunning  = false;   // guard against double-start
-let animationAborted  = false;   // set to true on pause/reset
-let currentSteps      = [];
-let currentStepIndex  = 0;
+let currentRowsClues = PUZZLE_LIBRARY.easy.rows;
+let currentColsClues = PUZZLE_LIBRARY.easy.cols;
+let animationRunning = false;   // guard against double-start
+let animationAborted = false;   // set to true on pause/reset
+let currentSteps = [];
+let currentStepIndex = 0;
 
 // ── DOM refs ──────────────────────────────────────────────────────────────────
-const container       = document.getElementById("nonogram-container");
-const colCluesEl      = document.getElementById("col-clues");
-const rowCluesEl      = document.getElementById("row-clues");
-const gameGridEl      = document.getElementById("game-grid");
-const statusBar       = document.getElementById("status-bar");
-const statusIcon      = document.getElementById("status-icon");
-const statusText      = document.getElementById("status-text");
+const container = document.getElementById("nonogram-container");
+const colCluesEl = document.getElementById("col-clues");
+const rowCluesEl = document.getElementById("row-clues");
+const gameGridEl = document.getElementById("game-grid");
+const statusBar = document.getElementById("status-bar");
+const statusIcon = document.getElementById("status-icon");
+const statusText = document.getElementById("status-text");
 
-const statTime        = document.getElementById("stat-time");
-const statSteps       = document.getElementById("stat-steps");
-const statBacktracks  = document.getElementById("stat-backtracks");
-const statLogic       = document.getElementById("stat-logic");
-const statGuess       = document.getElementById("stat-guess");
+const statTime = document.getElementById("stat-time");
+const statSteps = document.getElementById("stat-steps");
+const statBacktracks = document.getElementById("stat-backtracks");
+const statLogic = document.getElementById("stat-logic");
+const statGuess = document.getElementById("stat-guess");
 
-const puzzleSelect    = document.getElementById("puzzle-selector");
-const customGroup     = document.getElementById("custom-input-group");
+const puzzleSelect = document.getElementById("puzzle-selector");
+const customGroup = document.getElementById("custom-input-group");
 const customNameInput = document.getElementById("custom-name");
 const customRowsInput = document.getElementById("custom-rows");
 const customColsInput = document.getElementById("custom-cols");
-const btnClear        = document.getElementById("btn-clear");
-const btnReset        = document.getElementById("btn-reset");
-const btnSolve        = document.getElementById("btn-solve");
-const btnPlay         = document.getElementById("btn-play");
-const btnPause        = document.getElementById("btn-pause");
-const btnPrev         = document.getElementById("btn-prev");
-const btnNext         = document.getElementById("btn-next");
-const btnSave         = document.getElementById("btn-save");
-const btnDelete       = document.getElementById("btn-delete");
-const speedControl    = document.getElementById("speed-control");
-const speedSlider     = document.getElementById("speed-slider");
-const speedLabel      = document.getElementById("speed-label");
-const explanationCard  = document.getElementById("step-explanation-card");
-const explanationText  = document.getElementById("explanation-text");
+const btnClear = document.getElementById("btn-clear");
+const btnReset = document.getElementById("btn-reset");
+const btnSolve = document.getElementById("btn-solve");
+const btnPlay = document.getElementById("btn-play");
+const btnPause = document.getElementById("btn-pause");
+const btnPrev = document.getElementById("btn-prev");
+const btnNext = document.getElementById("btn-next");
+const btnSave = document.getElementById("btn-save");
+const btnDelete = document.getElementById("btn-delete");
+const speedControl = document.getElementById("speed-control");
+const speedSlider = document.getElementById("speed-slider");
+const speedLabel = document.getElementById("speed-label");
+const explanationCard = document.getElementById("step-explanation-card");
+const explanationText = document.getElementById("explanation-text");
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 /** Set status bar message + CSS state class */
 function setStatus(state, icon, message) {
-  statusBar.className   = `state--${state}`;
+  statusBar.className = `state--${state}`;
   statusIcon.textContent = icon;
   statusText.textContent = message;
 }
@@ -110,17 +111,17 @@ function showStats({ time_ms, total_steps, logic, guess, backtracks }) {
     el.classList.add('updated');
   });
 
-  statTime.textContent       = `${time_ms} ms`;
-  statSteps.textContent      = total_steps;
-  statLogic.textContent      = logic;
-  statGuess.textContent      = guess;
+  statTime.textContent = `${time_ms} ms`;
+  statSteps.textContent = total_steps;
+  statLogic.textContent = logic;
+  statGuess.textContent = guess;
   statBacktracks.textContent = backtracks;
 }
 
 function validateNonogramClues(rowsClues, colsClues) {
   const numRows = rowsClues.length;
   const numCols = colsClues.length;
-  
+
   let sumRows = 0;
   for (const row of rowsClues) {
     if (row.length === 1 && row[0] === 0) continue; // empty row
@@ -195,7 +196,7 @@ function renderBoard(rowsClues, colsClues) {
     div.setAttribute("aria-label", `Column ${c + 1}: ${clue.join(", ")}`);
     clue.forEach(n => {
       const span = document.createElement("span");
-      span.className   = "clue-number";
+      span.className = "clue-number";
       span.textContent = n;
       div.appendChild(span);
     });
@@ -213,7 +214,7 @@ function renderBoard(rowsClues, colsClues) {
     div.setAttribute("aria-label", `Row ${r + 1}: ${clue.join(", ")}`);
     clue.forEach(n => {
       const span = document.createElement("span");
-      span.className   = "clue-number";
+      span.className = "clue-number";
       span.textContent = n;
       div.appendChild(span);
     });
@@ -223,7 +224,7 @@ function renderBoard(rowsClues, colsClues) {
   // ── Game grid (bottom-right) ───────────────────────────────────────────────
   gameGridEl.innerHTML = "";
   gameGridEl.style.gridTemplateColumns = `repeat(${cols}, var(--cell-size))`;
-  gameGridEl.style.gridTemplateRows    = `repeat(${rows}, var(--cell-size))`;
+  gameGridEl.style.gridTemplateRows = `repeat(${rows}, var(--cell-size))`;
 
   for (let r = 0; r < rows; r++) {
     for (let c = 0; c < cols; c++) {
@@ -251,7 +252,7 @@ function renderBoard(rowsClues, colsClues) {
       // Keyboard a11y
       cell.addEventListener("keydown", (e) => {
         if (e.key === " " || e.key === "Enter") { e.preventDefault(); cell.click(); }
-        if (e.key === "x" || e.key === "X")     { e.preventDefault(); cell.dispatchEvent(new MouseEvent("contextmenu")); }
+        if (e.key === "x" || e.key === "X") { e.preventDefault(); cell.dispatchEvent(new MouseEvent("contextmenu")); }
       });
 
       gameGridEl.appendChild(cell);
@@ -263,7 +264,7 @@ function renderBoard(rowsClues, colsClues) {
 
 const STATE_CLASSES = [
   "cell-empty", "cell-filled", "cell-crossed",
-  "cell-logic", "cell-guess",  "cell-backtrack",
+  "cell-logic", "cell-guess", "cell-backtrack",
 ];
 
 /**
@@ -277,7 +278,7 @@ const STATE_CLASSES = [
 function setCellState(cell, state, val = null) {
   // Force animation replay by cloning if already in that class
   if (cell.classList.contains(`cell-${state}`) &&
-      (state === "logic" || state === "guess" || state === "backtrack")) {
+    (state === "logic" || state === "guess" || state === "backtrack")) {
     const clone = cell.cloneNode(true);
     cell.replaceWith(clone);
     cell = clone;
@@ -311,7 +312,7 @@ function reattachCellListeners(cell) {
   });
   cell.addEventListener("keydown", (e) => {
     if (e.key === " " || e.key === "Enter") { e.preventDefault(); cell.click(); }
-    if (e.key === "x" || e.key === "X")     { e.preventDefault(); cell.dispatchEvent(new MouseEvent("contextmenu")); }
+    if (e.key === "x" || e.key === "X") { e.preventDefault(); cell.dispatchEvent(new MouseEvent("contextmenu")); }
   });
 }
 
@@ -345,18 +346,18 @@ async function fetchAndSolve() {
   animationAborted = false;
   if (explanationCard) explanationCard.hidden = true;
   resetGrid();
-  btnSolve.disabled   = true;
-  btnPlay.hidden      = true;
-  btnPause.hidden     = true;
-  btnPrev.hidden      = true;
-  btnNext.hidden      = true;
+  btnSolve.disabled = true;
+  btnPlay.hidden = true;
+  btnPause.hidden = true;
+  btnPrev.hidden = true;
+  btnNext.hidden = true;
   speedControl.hidden = true;
   setStatus("solving", "◌", "Sending puzzle to AI solver…");
 
   try {
     // ── 1. Fetch ─────────────────────────────────────────────────────────────
     const res = await fetch(`${API_BASE}/solve`, {
-      method:  "POST",
+      method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         rows_clues: currentRowsClues,
@@ -373,17 +374,17 @@ async function fetchAndSolve() {
     }
 
     // ── 2. Show stats ─────────────────────────────────────────────────────────
-    const steps          = data.steps;           // [{x, y, val, type}, ...]
-    const logicCount     = steps.filter(s => s.type === "logic").length;
-    const guessCount     = steps.filter(s => s.type === "GUESS").length;
+    const steps = data.steps;           // [{x, y, val, type}, ...]
+    const logicCount = steps.filter(s => s.type === "logic").length;
+    const guessCount = steps.filter(s => s.type === "GUESS").length;
     const backtrackCount = steps.filter(s => s.type === "BACKTRACK").length;
 
     showStats({
-      time_ms:     data.stats.time_ms,
+      time_ms: data.stats.time_ms,
       total_steps: data.stats.total_steps,
-      logic:       logicCount,
-      guess:       guessCount,
-      backtracks:  backtrackCount
+      logic: logicCount,
+      guess: guessCount,
+      backtracks: backtrackCount
     });
 
     setStatus("solved", "✓",
@@ -399,10 +400,10 @@ async function fetchAndSolve() {
 
     // ── 3. Offer step-by-step animation ───────────────────────────────────────
     speedControl.hidden = false;
-    btnPlay.hidden      = false;
-    btnPause.hidden     = true;
-    btnPrev.hidden      = false;
-    btnNext.hidden      = false;
+    btnPlay.hidden = false;
+    btnPause.hidden = true;
+    btnPrev.hidden = false;
+    btnNext.hidden = false;
 
     currentSteps = steps;
     currentStepIndex = 0;
@@ -448,10 +449,10 @@ async function animateSteps() {
   animationAborted = false;
   if (explanationCard) explanationCard.hidden = true;
 
-  btnPlay.hidden  = true;
+  btnPlay.hidden = true;
   btnPause.hidden = false;
-  btnPrev.hidden  = true;
-  btnNext.hidden  = true;
+  btnPrev.hidden = true;
+  btnNext.hidden = true;
   btnSolve.disabled = true;
 
   for (; currentStepIndex < currentSteps.length; currentStepIndex++) {
@@ -490,10 +491,10 @@ async function animateSteps() {
   btnSolve.disabled = false;
 
   if (currentStepIndex >= currentSteps.length) {
-    btnPause.hidden   = true;
-    btnPlay.hidden    = false;
-    btnPrev.hidden    = false;
-    btnNext.hidden    = false;
+    btnPause.hidden = true;
+    btnPlay.hidden = false;
+    btnPrev.hidden = false;
+    btnNext.hidden = false;
     if (!animationAborted) {
       setStatus("solved", "✓", "Animation complete!");
     }
@@ -509,7 +510,7 @@ async function loadSavedPuzzles() {
     const res = await fetch(`${API_BASE}/api/get_puzzles`);
     if (!res.ok) return;
     const puzzles = await res.json();
-    
+
     // Clear old custom db options
     Array.from(puzzleSelect.options).forEach(opt => {
       if (opt.value.startsWith("db-")) opt.remove();
@@ -523,7 +524,7 @@ async function loadSavedPuzzles() {
           rows: parseClueString(p.rowsClues),
           cols: parseClueString(p.colsClues)
         };
-        
+
         const opt = document.createElement("option");
         opt.value = `db-${p.id}`;
         opt.textContent = `💾 ${p.name}`;
@@ -642,24 +643,24 @@ function loadCustom() {
 }
 
 function resetControls() {
-  animationAborted  = true;
-  animationRunning  = false;
-  btnPlay.hidden      = true;
-  btnPause.hidden     = true;
-  btnPrev.hidden      = true;
-  btnNext.hidden      = true;
+  animationAborted = true;
+  animationRunning = false;
+  btnPlay.hidden = true;
+  btnPause.hidden = true;
+  btnPrev.hidden = true;
+  btnNext.hidden = true;
   speedControl.hidden = true;
-  btnSolve.disabled   = false;
+  btnSolve.disabled = false;
   if (explanationCard) explanationCard.hidden = true;
   setStatus("idle", "◈", "Select a puzzle and press ⚡ Solve, or fill cells manually.");
 }
 
 function resetBoard() {
   resetGrid();
-  statTime.textContent       = "0 ms";
-  statSteps.textContent      = "0";
-  statLogic.textContent      = "0";
-  statGuess.textContent      = "0";
+  statTime.textContent = "0 ms";
+  statSteps.textContent = "0";
+  statLogic.textContent = "0";
+  statGuess.textContent = "0";
   statBacktracks.textContent = "0";
 }
 
@@ -743,10 +744,10 @@ btnSolve.addEventListener("click", fetchAndSolve);
 btnPause.addEventListener("click", () => {
   animationAborted = true;
   animationRunning = false;
-  btnPause.hidden  = true;
-  btnPlay.hidden   = false;
-  btnPrev.hidden   = false;
-  btnNext.hidden   = false;
+  btnPause.hidden = true;
+  btnPlay.hidden = false;
+  btnPrev.hidden = false;
+  btnNext.hidden = false;
   btnSolve.disabled = false;
   setStatus("idle", "◈", `Animation paused. Step ${currentStepIndex} / ${currentSteps.length}`);
 });
@@ -759,7 +760,7 @@ btnPrev.addEventListener("click", () => {
     const isLast = (i === currentStepIndex - 1);
     applyStepInstant(currentSteps[i], isLast);
   }
-  
+
   if (currentStepIndex > 0 && explanationText && explanationCard) {
     const prevStep = currentSteps[currentStepIndex - 1];
     if (prevStep && prevStep.reason) {
@@ -771,7 +772,7 @@ btnPrev.addEventListener("click", () => {
   } else {
     if (explanationCard) explanationCard.hidden = true;
   }
-  
+
   setStatus("idle", "◈", `Step ${currentStepIndex} / ${currentSteps.length}`);
 });
 
@@ -783,7 +784,7 @@ btnNext.addEventListener("click", () => {
     const isLast = (i === currentStepIndex - 1);
     applyStepInstant(currentSteps[i], isLast);
   }
-  
+
   if (explanationText && explanationCard) {
     const lastStep = currentSteps[currentStepIndex - 1];
     if (lastStep && lastStep.reason) {
@@ -793,7 +794,7 @@ btnNext.addEventListener("click", () => {
       explanationCard.hidden = true;
     }
   }
-  
+
   setStatus("idle", "◈", `Step ${currentStepIndex} / ${currentSteps.length}`);
 });
 

@@ -1,16 +1,17 @@
 """
 app.py
 ------
-Flask backend for the Nonogram solver.
+Flask backend cho trình giải Nonogram.
 
-Exposes a single REST endpoint:
+Cung cấp một REST endpoint duy nhất:
 
     POST /solve
-        Body : { "rows_clues": [[...], ...], "cols_clues": [[...], ...] }
-        Returns the solved grid, the full move history (LOGIC / GUESS /
-        BACKTRACK steps), and execution statistics.
+        Nội dung : { "rows_clues": [[...], ...], "cols_clues": [[...], ...] }
+        Trả về lưới đã giải, toàn bộ lịch sử thao tác
+        (các bước LOGIC / GUESS / BACKTRACK),
+        và các thống kê thực thi.
 
-Run locally:
+Chạy cục bộ:
     python app.py
 """
 

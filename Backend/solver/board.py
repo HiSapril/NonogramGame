@@ -1,11 +1,11 @@
 """
 board.py
 --------
-Nonogram game-state manager.
+Trình quản lý trạng thái trò chơi Nonogram.
 
-Coordinates the grid, history tracking, and the constraint-propagation
-deduction loop that uses generate_combinations() and get_overlap() from
-the sibling modules.
+Điều phối lưới chơi, việc theo dõi lịch sử thao tác, và vòng lặp suy luận 
+lan truyền ràng buộc (constraint-propagation deduction loop) sử dụng 
+generate_combinations() và get_overlap() từ các module cùng cấp.
 """
 
 import copy
@@ -29,25 +29,26 @@ HistEntry = Dict[str, Any]   # {"x": int, "y": int, "val": int, "type": str}
 
 class NonogramBoard:
     """
-    Manages the full state of a Nonogram puzzle.
+    Quản lý toàn bộ trạng thái của một câu đố Nonogram.
 
-    Grid values
-    -----------
-    -1 : unknown (not yet determined)
-     0 : white (empty)
-     1 : black (filled)
+    Giá trị của lưới
+    ----------------
+    -1 : chưa biết (chưa được xác định)
+     0 : ô trắng (trống)
+     1 : ô đen (được tô)
 
-    Parameters
-    ----------
+    Tham số
+    -------
     rows_clues : List[List[int]]
-        One clue list per row  (e.g. [[3], [1, 1], [2]]).
+        Một danh sách gợi ý cho mỗi hàng (ví dụ: [[3], [1, 1], [2]]).
     cols_clues : List[List[int]]
-        One clue list per column.
+        Một danh sách gợi ý cho mỗi cột.
 
-    Attributes
+    Thuộc tính
     ----------
-    grid    : 2-D list[int] of shape (num_rows × num_cols), initialised to -1.
-    history : List of change records {"x", "y", "val", "type"}.
+    grid    : danh sách 2 chiều list[int] có kích thước (số_hàng × số_cột),
+              được khởi tạo với giá trị -1.
+    history : Danh sách các bản ghi thay đổi {"x", "y", "val", "type"}.
     """
 
     def __init__(self, rows_clues: List[Clues], cols_clues: List[Clues]) -> None:
@@ -79,27 +80,28 @@ class NonogramBoard:
 
     def update_cell(self, r: int, c: int, val: int, type: str = "logic", reason: str = "") -> bool:
         """
-        Update cell (r, c) to ``val`` and record the change in history.
+        Cập nhật ô (r, c) thành ``val`` và ghi lại thay đổi vào lịch sử.
 
-        The update is skipped (and ``False`` is returned) if the cell already
-        holds ``val``, keeping history lean and the deduction loop efficient.
+        Việc cập nhật sẽ bị bỏ qua (và trả về ``False``) nếu ô đó đã
+        chứa giá trị ``val``, giúp lịch sử gọn nhẹ và vòng lặp suy luận
+        hoạt động hiệu quả hơn.
 
-        Parameters
-        ----------
-        r, c : int
-            Row and column indices (0-based).
-        val  : int
-            New cell value: 0 (white) or 1 (black).
-        type : str
-            Source of the change, e.g. ``"logic"`` (deduction) or
-            ``"user"`` (manual input).  Stored verbatim in history.
-        reason : str
-            Explanation of why this change was deduced.
-
-        Returns
+        Tham số
         -------
+        r, c : int
+            Chỉ số hàng và cột (đánh số từ 0).
+        val  : int
+            Giá trị mới của ô: 0 (trắng) hoặc 1 (đen).
+        type : str
+            Nguồn gốc của thay đổi, ví dụ ``"logic"`` (suy luận) hoặc
+            ``"user"`` (nhập thủ công). Được lưu nguyên văn vào lịch sử.
+        reason : str
+            Giải thích lý do tại sao thay đổi này được suy luận ra.
+
+        Giá trị trả về
+        --------------
         bool
-            ``True`` if the cell was actually changed, ``False`` otherwise.
+            ``True`` nếu ô thực sự được thay đổi, ngược lại là ``False``.
         """
         if self.grid[r][c] == val:
             return False   # no change — skip
@@ -120,10 +122,11 @@ class NonogramBoard:
 
     def is_invalid(self) -> bool:
         """
-        Return ``True`` if the current board state is provably unsolvable.
+        Trả về ``True`` nếu trạng thái hiện tại của bảng được chứng minh là
+        không thể giải được.
 
-        A state is invalid when at least one row or column has *no* valid
-        combination that is consistent with the already-filled cells.
+        Một trạng thái được xem là không hợp lệ khi có ít nhất một hàng hoặc
+        một cột không còn tổ hợp hợp lệ nào phù hợp với các ô đã được điền.
         """
         for r in range(self.num_rows):
             combos = self._filtered_combinations("row", r)
@@ -141,24 +144,26 @@ class NonogramBoard:
 
     def apply_logic(self) -> bool:
         """
-        Run the constraint-propagation deduction loop.
+        Chạy vòng lặp suy luận lan truyền ràng buộc
+        (constraint-propagation deduction loop).
 
-        Each iteration:
-        1. For every row — generate all combinations compatible with the
-           current grid state, compute the overlap, and lock in any certain
-           cells.
-        2. Repeat for every column.
-        3. If *any* cell was updated this iteration, go back to step 1
-           (a column update may unlock new row deductions and vice versa).
-        4. Stop when a full pass produces no new information, or when the
-           board is solved / becomes invalid.
+        Mỗi vòng lặp:
+        1. Với mỗi hàng — tạo tất cả các tổ hợp tương thích với trạng thái
+           hiện tại của lưới, tính phần giao nhau (overlap), và cố định
+           các ô chắc chắn.
+        2. Lặp lại tương tự cho mỗi cột.
+        3. Nếu *bất kỳ* ô nào được cập nhật trong vòng lặp này, quay lại
+           bước 1 (một cập nhật ở cột có thể mở ra các suy luận mới cho hàng
+           và ngược lại).
+        4. Dừng khi một lượt quét hoàn chỉnh không tạo ra thông tin mới,
+           hoặc khi bảng được giải xong / trở nên không hợp lệ.
 
-        Returns
-        -------
+        Giá trị trả về
+        --------------
         bool
-            ``True``  — the board was solved completely by logic alone.
-            ``False`` — the loop stalled (backtracking / guessing needed)
-                        or the board entered an invalid state.
+            ``True``  — bảng đã được giải hoàn toàn chỉ bằng suy luận logic.
+            ``False`` — vòng lặp bị bế tắc (cần quay lui / phỏng đoán)
+                        hoặc bảng rơi vào trạng thái không hợp lệ.
         """
         while True:
             changed = False
@@ -233,24 +238,25 @@ class NonogramBoard:
 
     def get_mrv_line(self) -> Optional[Tuple[str, int]]:
         """
-        Find the unresolved line with the **Minimum Remaining Values**.
+        Tìm dòng chưa được giải quyết với tiêu chí **Giá trị còn lại tối thiểu**
+        (Minimum Remaining Values - MRV).
 
-        Scans every row and column that still contains at least one unknown
-        cell (-1) and counts how many valid combinations are consistent with
-        the current grid state.  Returns the line that has the fewest options
-        (but more than 1 — a line with exactly 1 combo would be handled by
-        ``apply_logic`` on the next call).
+        Quét qua mọi hàng và cột vẫn còn ít nhất một ô chưa biết (-1)
+        và đếm số lượng tổ hợp hợp lệ phù hợp với trạng thái hiện tại
+        của lưới. Trả về dòng có ít lựa chọn nhất
+        (nhưng lớn hơn 1 — một dòng chỉ có đúng 1 tổ hợp sẽ được xử lý bởi
+        ``apply_logic`` ở lần gọi tiếp theo).
 
-        The MRV heuristic minimises the branching factor of the backtracking
-        search: guessing on the most constrained line is most likely to produce
-        an early contradiction and prune large subtrees.
+        Heuristic MRV giúp giảm hệ số phân nhánh của thuật toán quay lui
+        (backtracking): phỏng đoán trên dòng bị ràng buộc nhiều nhất sẽ có
+        khả năng tạo ra mâu thuẫn sớm hơn và loại bỏ các nhánh lớn của cây tìm kiếm.
 
-        Returns
-        -------
-        Tuple[str, int] or None
-            ``(line_type, index)`` where *line_type* is ``"row"`` or ``"col"``
-            and *index* is the 0-based position.
-            Returns ``None`` if every line is already fully determined.
+        Giá trị trả về
+        --------------
+        Tuple[str, int] hoặc None
+            ``(line_type, index)`` trong đó *line_type* là ``"row"`` hoặc ``"col"``
+            và *index* là vị trí đánh số từ 0.
+            Trả về ``None`` nếu mọi dòng đã được xác định hoàn toàn.
         """
         best_type:  Optional[str] = None
         best_index: int           = -1
@@ -284,32 +290,33 @@ class NonogramBoard:
 
     def backtrack_solve(self) -> bool:
         """
-        Solve the puzzle using recursive backtracking with the MRV heuristic.
+        Giải câu đố bằng thuật toán quay lui đệ quy (recursive backtracking)
+        kết hợp heuristic MRV.
 
-        Algorithm
-        ---------
-        1. **Simplify** — run ``apply_logic()`` to propagate all deterministic
-           deductions from the current state.
-        2. **Terminate** — if the board is solved, return ``True``; if it is
-           in a contradictory state, return ``False``.
-        3. **Choose** — pick the unresolved line with the fewest valid
-           combinations (MRV), minimising the branching factor.
-        4. **Branch** — for each valid combination of that line:
+        Thuật toán
+        -----------
+        1. **Đơn giản hóa** — chạy ``apply_logic()`` để lan truyền toàn bộ
+           các suy luận xác định được từ trạng thái hiện tại.
+        2. **Kết thúc** — nếu bảng đã được giải, trả về ``True``; nếu bảng
+           rơi vào trạng thái mâu thuẫn, trả về ``False``.
+        3. **Chọn** — chọn dòng chưa được giải có ít tổ hợp hợp lệ nhất
+           (MRV), nhằm giảm hệ số phân nhánh.
+        4. **Phân nhánh** — với mỗi tổ hợp hợp lệ của dòng đó:
 
-           a. **Save** the current grid and history length.
-           b. **Apply** the combination, tagging each change as ``'GUESS'``.
-           c. **Recurse** — call ``backtrack_solve()`` on the updated board.
-           d. **Succeed** — if the recursive call returns ``True``, propagate
-              ``True`` up the call stack.
-           e. **Restore** — if the recursive call returns ``False``, roll the
-              grid back to the saved snapshot and append ``'BACKTRACK'``
-              history entries so the frontend can animate the undo step.
-        5. If every branch fails, return ``False``.
+           a. **Lưu** trạng thái hiện tại của lưới và độ dài lịch sử.
+           b. **Áp dụng** tổ hợp, đánh dấu mỗi thay đổi bằng ``'GUESS'``.
+           c. **Đệ quy** — gọi ``backtrack_solve()`` trên bảng đã cập nhật.
+           d. **Thành công** — nếu lời gọi đệ quy trả về ``True``, truyền
+              ``True`` ngược lên ngăn xếp lời gọi.
+           e. **Khôi phục** — nếu lời gọi đệ quy trả về ``False``, hoàn tác
+              lưới về trạng thái đã lưu và thêm các mục lịch sử
+              ``'BACKTRACK'`` để frontend có thể hiển thị hoạt ảnh bước hoàn tác.
+        5. Nếu mọi nhánh đều thất bại, trả về ``False``.
 
-        Returns
-        -------
+        Giá trị trả về
+        --------------
         bool
-            ``True`` if the puzzle was solved, ``False`` if it is unsolvable.
+            ``True`` nếu câu đố được giải, ``False`` nếu không thể giải được.
         """
         # ── Step 1: simplify ──────────────────────────────────────────────────
         self.apply_logic()
@@ -388,18 +395,19 @@ class NonogramBoard:
         self, line_type: str, index: int
     ) -> Optional[List[List[int]]]:
         """
-        Generate all combinations for a line that are **consistent** with the
-        cells already determined in the grid.
+        Tạo tất cả các tổ hợp cho một dòng sao cho **phù hợp**
+        với các ô đã được xác định trong lưới.
 
-        Returns ``None`` if every cell in the line is already known (fast-path).
-        Returns an empty list ``[]`` if no combination is consistent.
+        Trả về ``None`` nếu mọi ô trong dòng đã được biết trước
+        (đường xử lý nhanh - fast-path).
+        Trả về danh sách rỗng ``[]`` nếu không có tổ hợp nào phù hợp.
 
-        Parameters
-        ----------
+        Tham số
+        -------
         line_type : str
-            ``"row"`` or ``"col"``.
+            ``"row"`` hoặc ``"col"``.
         index : int
-            Index of the row or column.
+            Chỉ số của hàng hoặc cột.
         """
         if line_type == "row":
             clues  = self.rows_clues[index]

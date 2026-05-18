@@ -1,11 +1,11 @@
 """
 overlap.py
 ----------
-Nonogram solver utility: given all valid configurations of a row/column,
-determines the "overlap" — which cells are definitely black (1), definitely
-white (0), or still unknown (-1).
+Nonogram solver utility: với tất cả các cấu hình hợp lệ của một hàng/cột,
+xác định phần "giao nhau" (overlap) — ô nào chắc chắn là màu đen (1),
+chắc chắn là màu trắng (0), hoặc vẫn chưa xác định (-1).
 
-Intended to be called after generate_combinations() from combinations.py.
+Được thiết kế để gọi sau ``generate_combinations()`` từ combinations.py.
 """
 
 from typing import List, Optional
@@ -17,35 +17,36 @@ class ImpossibleStateError(Exception):
 
 def get_overlap(combinations: List[List[int]], length: int) -> Optional[List[int]]:
     """
-    Determine the certain and uncertain cells across all valid combinations.
+    Xác định các ô chắc chắn và không chắc chắn giữa tất cả các tổ hợp hợp lệ.
 
-    For each cell position, compare its value across every combination:
-      - If every combination has 1  → the cell is definitely black  ( 1)
-      - If every combination has 0  → the cell is definitely white  ( 0)
-      - If combinations disagree    → the cell is unknown           (-1)
+    Với mỗi vị trí ô, so sánh giá trị của nó trên mọi tổ hợp:
+      - Nếu mọi tổ hợp đều có giá trị 1  → ô chắc chắn là màu đen   ( 1)
+      - Nếu mọi tổ hợp đều có giá trị 0  → ô chắc chắn là màu trắng ( 0)
+      - Nếu các tổ hợp khác nhau         → ô chưa xác định          (-1)
 
-    Parameters
-    ----------
-    combinations : List[List[int]]
-        All valid configurations for a row/column, as produced by
-        ``generate_combinations()``.  Each inner list is a sequence of
-        0s (white) and 1s (black) of length ``length``.
-    length : int
-        The expected length of each configuration.
-
-    Returns
+    Tham số
     -------
+    combinations : List[List[int]]
+        Tất cả các cấu hình hợp lệ cho một hàng/cột, được tạo bởi
+        ``generate_combinations()``. Mỗi danh sách bên trong là một dãy
+        gồm các số 0 (trắng) và 1 (đen) có độ dài ``length``.
+    length : int
+        Độ dài mong đợi của mỗi cấu hình.
+
+    Giá trị trả về
+    --------------
     List[int]
-        A list of length ``length`` whose values are 1, 0, or -1.
+        Một danh sách có độ dài ``length`` với các giá trị 1, 0 hoặc -1.
 
-    Raises
-    ------
-    ImpossibleStateError
-        If ``combinations`` is empty, meaning no valid configuration exists
-        for the current board state (i.e. the puzzle is in an impossible state).
-
-    Examples
+    Ngoại lệ
     --------
+    ImpossibleStateError
+        Được phát sinh nếu ``combinations`` rỗng, nghĩa là không tồn tại
+        cấu hình hợp lệ nào cho trạng thái hiện tại của bảng
+        (tức là câu đố đang ở trạng thái không thể giải được).
+
+    Ví dụ
+    -----
     >>> get_overlap([[1, 1, 0, 1], [1, 1, 0, 0]], length=4)
     [1, 1, 0, -1]
 
